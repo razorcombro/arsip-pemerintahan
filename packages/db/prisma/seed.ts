@@ -22,7 +22,28 @@ async function main() {
     });
   }
 
+  const unit = await prisma.unit.upsert({
+    where: { code: "DINAS-UTAMA" },
+    update: {},
+    create: {
+      code: "DINAS-UTAMA",
+      name: "Dinas Utama"
+    }
+  });
+
+  const classification = await prisma.classification.upsert({
+    where: { code: "UMUM-001" },
+    update: {},
+    create: {
+      code: "UMUM-001",
+      name: "Arsip Umum",
+      activeRetention: 2,
+      inactiveRetention: 3
+    }
+  });
+
   console.log("Seed selesai");
+  console.log({ unit, classification });
 }
 
 main()
