@@ -1,0 +1,18 @@
+{
+  "name": "arsip-pemerintahan",
+  "private": true,
+  "packageManager": "pnpm@10.0.0",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "db:generate": "pnpm --filter @arsip/db prisma generate",
+    "db:migrate": "pnpm --filter @arsip/db prisma migrate deploy",
+    "db:seed": "pnpm --filter @arsip/db prisma db seed"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0"
+  }
+}
