@@ -5,16 +5,19 @@ import { PrismaModule } from "./common/prisma/prisma.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { ArchivesModule } from "./modules/archives/archives.module";
 import { AuditLogsModule } from "./modules/audit-logs/audit-logs.module";
+import { UsersModule } from "./modules/users/users.module";
 
 @Module({
   imports: [
     ConfigModule.forRoot({
-      isGlobal: true
+      isGlobal: true,
+      envFilePath: "../../.env"
     }),
     PrismaModule,
     AuthModule,
     ArchivesModule,
-    AuditLogsModule
+    AuditLogsModule,
+    UsersModule
   ],
   controllers: [AppController]
 })

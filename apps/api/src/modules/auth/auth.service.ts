@@ -61,7 +61,14 @@ export class AuthService {
 
   async login(dto: LoginDto) {
     const user = await this.prisma.user.findUnique({
-      where: { username: dto.username }
+      where: { username: dto.username },
+      include: {
+        roles: {
+          include: {
+            role: true
+          }
+        }
+      }
     });
 
     if (!user) {
@@ -74,10 +81,14 @@ export class AuthService {
       throw new UnauthorizedException("Username atau password salah");
     }
 
+    const roleCodes = user.roles.map((item) => item.role.code);
+
     const payload = {
       sub: user.id,
       username: user.username,
-      email: user.email
+      email: user.email,
+      unitId: user.unitId,
+      roles: roleCodes
     };
 
     const accessToken = await this.jwtService.signAsync(payload);
@@ -88,7 +99,9 @@ export class AuthService {
         id: user.id,
         fullName: user.fullName,
         email: user.email,
-        username: user.username
+        username: user.username,
+        unitId: user.unitId,
+        roles: roleCodes
       }
     };
   }
@@ -96,14 +109,12 @@ export class AuthService {
   async me(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: {
-        id: true,
-        fullName: true,
-        email: true,
-        username: true,
-        unitId: true,
-        createdAt: true,
-        updatedAt: true
+      include: {
+        roles: {
+          include: {
+            role: true
+          }
+        }
       }
     });
 
@@ -111,6 +122,15 @@ export class AuthService {
       throw new UnauthorizedException("User tidak ditemukan");
     }
 
-    return user;
+    return {
+      id: user.id,
+      fullName: user.fullName,
+      email: user.email,
+      username: user.username,
+      unitId: user.unitId,
+      roles: user.roles.map((item) => item.role.code),
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
+    };
   }
 }
