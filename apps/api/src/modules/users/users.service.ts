@@ -4,10 +4,99 @@ import {
   NotFoundException
 } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
+import * as bcrypt from "bcrypt";
+import { CreateUserDto } from "./dto/create-user.dto";
 
 @Injectable()
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async createUser(dto: CreateUserDto) {
+    const existingEmail = await this.prisma.user.findUnique({
+      where: { email: dto.email }
+    });
+
+    if (existingEmail) {
+      throw new BadRequestException("Email sudah digunakan");
+    }
+
+    const existingUsername = await this.prisma.user.findUnique({
+      where: { username: dto.username }
+    });
+
+    if (existingUsername) {
+      throw new BadRequestException("Username sudah digunakan");
+    }
+
+    if (dto.unitId) {
+      const unit = await this.prisma.unit.findUnique({
+        where: { id: dto.unitId }
+      });
+
+      if (!unit) {
+        throw new NotFoundException("Unit tidak ditemukan");
+      }
+    }
+
+    let role = null;
+
+    if (dto.roleCode) {
+      role = await this.prisma.role.findUnique({
+        where: { code: dto.roleCode }
+      });
+
+      if (!role) {
+        throw new NotFoundException("Role tidak ditemukan");
+      }
+    }
+
+    const hashedPassword = await bcrypt.hash(dto.password, 10);
+
+    const user = await this.prisma.user.create({
+      data: {
+        fullName: dto.fullName,
+        email: dto.email,
+        username: dto.username,
+        passwordHash: hashedPassword,
+        unitId: dto.unitId
+      }
+    });
+
+    if (role) {
+      await this.prisma.userRole.create({
+        data: {
+          userId: user.id,
+          roleId: role.id
+        }
+      });
+    }
+
+    const createdUser = await this.prisma.user.findUnique({
+      where: { id: user.id },
+      include: {
+        unit: true,
+        roles: {
+          include: {
+            role: true
+          }
+        }
+      }
+    });
+
+    return {
+      message: "User berhasil dibuat",
+      data: {
+        id: createdUser?.id,
+        fullName: createdUser?.fullName,
+        email: createdUser?.email,
+        username: createdUser?.username,
+        unitId: createdUser?.unitId,
+        unit: createdUser?.unit,
+        roles: createdUser?.roles.map((item) => item.role.code) || [],
+        createdAt: createdUser?.createdAt
+      }
+    };
+  }
 
   async assignRole(userId: string, roleCode: string) {
     const user = await this.prisma.user.findUnique({

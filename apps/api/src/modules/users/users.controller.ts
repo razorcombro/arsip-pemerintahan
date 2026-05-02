@@ -11,6 +11,7 @@ import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
 import { UsersService } from "./users.service";
 import { AssignRoleDto } from "./dto/assign-role.dto";
+import { CreateUserDto } from "./dto/create-user.dto";
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller("users")
@@ -21,6 +22,12 @@ export class UsersController {
   @Get()
   findAll() {
     return this.usersService.findAll();
+  }
+
+  @Roles("SUPER_ADMIN")
+  @Post()
+  createUser(@Body() dto: CreateUserDto) {
+    return this.usersService.createUser(dto);
   }
 
   @Roles("SUPER_ADMIN")
