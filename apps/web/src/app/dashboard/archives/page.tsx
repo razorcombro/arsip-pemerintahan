@@ -11,6 +11,8 @@ export default function ArchivesPage() {
   const [success, setSuccess] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [createdArchiveId, setCreatedArchiveId] = useState("");
+  const [uploadArchiveId, setUploadArchiveId] = useState("");
+  const [editingArchiveId, setEditingArchiveId] = useState("");
   const [form, setForm] = useState({
     archiveNumber: "",
     letterNumber: "",
@@ -19,6 +21,13 @@ export default function ArchivesPage() {
     createdByUnitId: "",
     classificationId: "",
     securityLevel: "BIASA",
+    status: "ACTIVE",
+    keywords: ""
+  });
+
+  const [editForm, setEditForm] = useState({
+    title: "",
+    summary: "",
     status: "ACTIVE",
     keywords: ""
   });
@@ -69,7 +78,8 @@ export default function ArchivesPage() {
       );
 
       setCreatedArchiveId(res.data.id);
-      setSuccess("Arsip berhasil dibuat. Sekarang Anda bisa upload file.");
+      setUploadArchiveId(res.data.id);
+      setSuccess("Arsip berhasil dibuat. Anda bisa upload file sekarang.");
       setForm({
         archiveNumber: "",
         letterNumber: "",
@@ -94,9 +104,10 @@ export default function ArchivesPage() {
     setSuccess("");
 
     const token = localStorage.getItem("accessToken") || "";
+    const targetArchiveId = uploadArchiveId || createdArchiveId;
 
-    if (!createdArchiveId) {
-      setError("Buat arsip dulu sebelum upload file");
+    if (!targetArchiveId) {
+      setError("Pilih atau isi Archive ID terlebih dahulu");
       return;
     }
 
@@ -110,7 +121,7 @@ export default function ArchivesPage() {
       formData.append("file", selectedFile);
 
       const res = await fetch(
-        `${API_BASE_URL}/archives/${createdArchiveId}/upload`,
+        `${API_BASE_URL}/archives/${targetArchiveId}/upload`,
         {
           method: "POST",
           headers: {
@@ -129,6 +140,7 @@ export default function ArchivesPage() {
       setSuccess("File berhasil diupload ke arsip");
       setSelectedFile(null);
       setCreatedArchiveId("");
+      setUploadArchiveId("");
 
       const input = document.getElementById("archive-file-input") as HTMLInputElement | null;
       if (input) {
@@ -138,6 +150,129 @@ export default function ArchivesPage() {
       await loadData();
     } catch (err: any) {
       setError(err.message || "Upload file gagal");
+    }
+  }
+
+  function startEdit(archive: any) {
+    setEditingArchiveId(archive.id);
+    setEditForm({
+      title: archive.title || "",
+      summary: archive.summary || "",
+      status: archive.status || "ACTIVE",
+      keywords: Array.isArray(archive.keywords)
+        ? archive.keywords.join(", ")
+        : ""
+    });
+    setError("");
+    setSuccess("");
+  }
+
+  function cancelEdit() {
+    setEditingArchiveId("");
+    setEditForm({
+      title: "",
+      summary: "",
+      status: "ACTIVE",
+      keywords: ""
+    });
+  }
+
+  async function handleUpdateArchive(archiveId: string) {
+    setError("");
+    setSuccess("");
+
+    const token = localStorage.getItem("accessToken") || "";
+
+    try {
+      await apiFetch(
+        `/archives/${archiveId}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            title: editForm.title,
+            summary: editForm.summary,
+            status: editForm.status,
+            keywords: editForm.keywords
+              .split(",")
+              .map((item) => item.trim())
+              .filter(Boolean)
+          })
+        },
+        token
+      );
+
+      setSuccess("Arsip berhasil diperbarui");
+      cancelEdit();
+      await loadData();
+    } catch (err: any) {
+      setError(err.message || "Gagal memperbarui arsip");
+    }
+  }
+
+  async function handleDeleteArchive(archiveId: string) {
+    const ok = window.confirm("Yakin ingin soft delete arsip ini?");
+    if (!ok) return;
+
+    setError("");
+    setSuccess("");
+
+    const token = localStorage.getItem("accessToken") || "";
+
+    try {
+      await apiFetch(
+        `/archives/${archiveId}`,
+        {
+          method: "DELETE"
+        },
+        token
+      );
+
+      setSuccess("Arsip berhasil di-soft delete");
+      await loadData();
+    } catch (err: any) {
+      setError(err.message || "Gagal menghapus arsip");
+    }
+  }
+
+  async function handleDownloadFile(archiveId: string, fileId: string, fileName: string) {
+    setError("");
+    setSuccess("");
+
+    const token = localStorage.getItem("accessToken") || "";
+
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/archives/${archiveId}/files/${fileId}/download`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+
+      if (!res.ok) {
+        let msg = "Gagal download file";
+        try {
+          const data = await res.json();
+          msg = data.message || msg;
+        } catch {}
+        throw new Error(msg);
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+      setSuccess("File berhasil didownload");
+    } catch (err: any) {
+      setError(err.message || "Gagal download file");
     }
   }
 
@@ -257,17 +392,20 @@ export default function ArchivesPage() {
             borderRadius: 12
           }}
         >
-          <h3>Upload File ke Arsip Baru</h3>
+          <h3>Upload File</h3>
 
           <p style={{ fontSize: 14 }}>
-            Setelah membuat arsip, ID arsip akan disimpan sementara untuk upload file.
+            Bisa upload ke arsip baru atau ke arsip yang sudah ada.
           </p>
 
           <div style={{ display: "grid", gap: 10 }}>
             <input
-              placeholder="Archive ID hasil create"
-              value={createdArchiveId}
-              onChange={(e) => setCreatedArchiveId(e.target.value)}
+              placeholder="Archive ID"
+              value={uploadArchiveId || createdArchiveId}
+              onChange={(e) => {
+                setUploadArchiveId(e.target.value);
+                setCreatedArchiveId("");
+              }}
             />
 
             <input
@@ -299,23 +437,141 @@ export default function ArchivesPage() {
       >
         <h3>Daftar Arsip</h3>
 
-        <ul style={{ paddingLeft: 18 }}>
+        <div style={{ display: "grid", gap: 16 }}>
           {archives.map((archive) => (
-            <li key={archive.id} style={{ marginBottom: 12 }}>
-              <div>
+            <div
+              key={archive.id}
+              style={{
+                border: "1px solid #ddd",
+                borderRadius: 12,
+                padding: 16
+              }}
+            >
+              <div style={{ marginBottom: 8 }}>
                 <strong>{archive.archiveNumber}</strong> - {archive.title} -{" "}
                 {archive.status}
               </div>
-              <div style={{ fontSize: 14, color: "#555" }}>
+
+              <div style={{ fontSize: 14, color: "#555", marginBottom: 8 }}>
                 Unit: {archive.createdByUnit?.name || "-"} | Klasifikasi:{" "}
                 {archive.classification?.name || "-"}
               </div>
-              <div style={{ fontSize: 13, color: "#777" }}>
-                Files: {archive.files?.length || 0}
+
+              {editingArchiveId === archive.id ? (
+                <div style={{ display: "grid", gap: 10, marginBottom: 12 }}>
+                  <input
+                    placeholder="Judul"
+                    value={editForm.title}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, title: e.target.value })
+                    }
+                  />
+                  <textarea
+                    placeholder="Ringkasan"
+                    rows={3}
+                    value={editForm.summary}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, summary: e.target.value })
+                    }
+                  />
+                  <select
+                    value={editForm.status}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, status: e.target.value })
+                    }
+                  >
+                    <option value="DRAFT">DRAFT</option>
+                    <option value="ACTIVE">ACTIVE</option>
+                    <option value="INACTIVE">INACTIVE</option>
+                    <option value="DESTROYED">DESTROYED</option>
+                  </select>
+                  <input
+                    placeholder="Keywords pisahkan dengan koma"
+                    value={editForm.keywords}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, keywords: e.target.value })
+                    }
+                  />
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      type="button"
+                      onClick={() => handleUpdateArchive(archive.id)}
+                    >
+                      Simpan Edit
+                    </button>
+                    <button type="button" onClick={cancelEdit}>
+                      Batal
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ fontSize: 14 }}>
+                    Ringkasan: {archive.summary || "-"}
+                  </div>
+                  <div style={{ fontSize: 13, color: "#777" }}>
+                    Keywords:{" "}
+                    {Array.isArray(archive.keywords) && archive.keywords.length
+                      ? archive.keywords.join(", ")
+                      : "-"}
+                  </div>
+                </div>
+              )}
+
+              <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                <button type="button" onClick={() => startEdit(archive)}>
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteArchive(archive.id)}
+                >
+                  Soft Delete
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUploadArchiveId(archive.id);
+                    setSuccess(`Upload diarahkan ke arsip ${archive.archiveNumber}`);
+                    setError("");
+                  }}
+                >
+                  Pilih untuk Upload
+                </button>
               </div>
-            </li>
+
+              <div>
+                <strong>Files:</strong>
+                {archive.files?.length ? (
+                  <ul style={{ marginTop: 8 }}>
+                    {archive.files.map((file: any) => (
+                      <li key={file.id} style={{ marginBottom: 6 }}>
+                        {file.originalName}{" "}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleDownloadFile(
+                              archive.id,
+                              file.id,
+                              file.originalName
+                            )
+                          }
+                          style={{ marginLeft: 8 }}
+                        >
+                          Download
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div style={{ fontSize: 14, color: "#777", marginTop: 8 }}>
+                    Belum ada file
+                  </div>
+                )}
+              </div>
+            </div>
           ))}
-        </ul>
+        </div>
       </div>
     </div>
   );
