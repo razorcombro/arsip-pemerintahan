@@ -6,6 +6,8 @@ import { AuthModule } from "./modules/auth/auth.module";
 import { ArchivesModule } from "./modules/archives/archives.module";
 import { AuditLogsModule } from "./modules/audit-logs/audit-logs.module";
 import { UsersModule } from "./modules/users/users.module";
+import { UnitsModule } from "./modules/units/units.module";
+import { ClassificationsModule } from "./modules/classifications/classifications.module";
 
 @Module({
   imports: [
@@ -17,7 +19,9 @@ import { UsersModule } from "./modules/users/users.module";
     AuthModule,
     ArchivesModule,
     AuditLogsModule,
-    UsersModule
+    UsersModule,
+    UnitsModule,
+    ClassificationsModule
   ],
   controllers: [AppController]
 })
