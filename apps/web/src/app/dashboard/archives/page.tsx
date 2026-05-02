@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import { apiFetch, API_BASE_URL } from "../../../lib/api";
 
 export default function ArchivesPage() {
@@ -13,6 +14,12 @@ export default function ArchivesPage() {
   const [createdArchiveId, setCreatedArchiveId] = useState("");
   const [uploadArchiveId, setUploadArchiveId] = useState("");
   const [editingArchiveId, setEditingArchiveId] = useState("");
+
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [unitFilter, setUnitFilter] = useState("");
+  const [classificationFilter, setClassificationFilter] = useState("");
+
   const [form, setForm] = useState({
     archiveNumber: "",
     letterNumber: "",
@@ -53,6 +60,35 @@ export default function ArchivesPage() {
   useEffect(() => {
     loadData();
   }, []);
+
+  const filteredArchives = useMemo(() => {
+    return archives.filter((archive) => {
+      const text = `${archive.archiveNumber || ""} ${archive.title || ""} ${archive.letterNumber || ""} ${archive.summary || ""}`.toLowerCase();
+
+      const matchesSearch = search
+        ? text.includes(search.toLowerCase())
+        : true;
+
+      const matchesStatus = statusFilter
+        ? archive.status === statusFilter
+        : true;
+
+      const matchesUnit = unitFilter
+        ? archive.createdByUnitId === unitFilter
+        : true;
+
+      const matchesClassification = classificationFilter
+        ? archive.classificationId === classificationFilter
+        : true;
+
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesUnit &&
+        matchesClassification
+      );
+    });
+  }, [archives, search, statusFilter, unitFilter, classificationFilter]);
 
   async function handleCreateArchive(e: React.FormEvent) {
     e.preventDefault();
@@ -234,7 +270,11 @@ export default function ArchivesPage() {
     }
   }
 
-  async function handleDownloadFile(archiveId: string, fileId: string, fileName: string) {
+  async function handleDownloadFile(
+    archiveId: string,
+    fileId: string,
+    fileName: string
+  ) {
     setError("");
     setSuccess("");
 
@@ -419,6 +459,66 @@ export default function ArchivesPage() {
         </form>
       </div>
 
+      <div
+        style={{
+          background: "#fff",
+          padding: 20,
+          borderRadius: 12,
+          marginTop: 20
+        }}
+      >
+        <h3>Filter & Pencarian Arsip</h3>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "2fr 1fr 1fr 1fr",
+            gap: 10
+          }}
+        >
+          <input
+            placeholder="Cari nomor arsip, judul, nomor surat, ringkasan..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="">Semua Status</option>
+            <option value="DRAFT">DRAFT</option>
+            <option value="ACTIVE">ACTIVE</option>
+            <option value="INACTIVE">INACTIVE</option>
+            <option value="DESTROYED">DESTROYED</option>
+          </select>
+
+          <select
+            value={unitFilter}
+            onChange={(e) => setUnitFilter(e.target.value)}
+          >
+            <option value="">Semua Unit</option>
+            {units.map((unit) => (
+              <option key={unit.id} value={unit.id}>
+                {unit.name}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={classificationFilter}
+            onChange={(e) => setClassificationFilter(e.target.value)}
+          >
+            <option value="">Semua Klasifikasi</option>
+            {classifications.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.code} - {item.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
       {error ? (
         <p style={{ color: "red", marginTop: 16 }}>{error}</p>
       ) : null}
@@ -435,10 +535,10 @@ export default function ArchivesPage() {
           marginTop: 20
         }}
       >
-        <h3>Daftar Arsip</h3>
+        <h3>Daftar Arsip ({filteredArchives.length})</h3>
 
         <div style={{ display: "grid", gap: 16 }}>
-          {archives.map((archive) => (
+          {filteredArchives.map((archive) => (
             <div
               key={archive.id}
               style={{
@@ -518,7 +618,7 @@ export default function ArchivesPage() {
                 </div>
               )}
 
-              <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+              <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
                 <button type="button" onClick={() => startEdit(archive)}>
                   Edit
                 </button>
@@ -538,6 +638,18 @@ export default function ArchivesPage() {
                 >
                   Pilih untuk Upload
                 </button>
+                <Link
+                  href={`/dashboard/archives/${archive.id}`}
+                  style={{
+                    textDecoration: "none",
+                    background: "#111827",
+                    color: "#fff",
+                    padding: "6px 10px",
+                    borderRadius: 6
+                  }}
+                >
+                  Detail
+                </Link>
               </div>
 
               <div>
