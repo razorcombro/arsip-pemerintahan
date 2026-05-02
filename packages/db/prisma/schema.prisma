@@ -47,6 +47,7 @@ model User {
   unitId       String?
   unit         Unit?       @relation(fields: [unitId], references: [id])
   roles        UserRole[]
+  auditLogs     AuditLog[]
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 }
@@ -97,6 +98,7 @@ model Archive {
   keywords          String[]
   version           Int            @default(1)
   files             ArchiveFile[]
+  auditLogs      AuditLog[]
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
 }
@@ -116,9 +118,14 @@ model ArchiveFile {
 
 model AuditLog {
   id          String   @id @default(cuid())
+  userId      String?
+  archiveId   String?
   action      String
   entityType  String
   entityId    String?
   description String?
   createdAt   DateTime @default(now())
+
+  user        User?    @relation(fields: [userId], references: [id])
+  archive     Archive? @relation(fields: [archiveId], references: [id])
 }
