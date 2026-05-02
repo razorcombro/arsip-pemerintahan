@@ -1,37 +1,24 @@
-async function getApiHealth() {
-  try {
-    const baseUrl =
-      process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000/api";
+import Link from "next/link";
 
-    const res = await fetch(`${baseUrl.replace("/api", "")}/api/health`, {
-      cache: "no-store"
-    });
-
-    if (!res.ok) {
-      throw new Error("API tidak merespons");
-    }
-
-    return res.json();
-  } catch {
-    return null;
-  }
-}
-
-export default async function HomePage() {
-  const health = await getApiHealth();
-
+export default function HomePage() {
   return (
-    <main style={{ padding: 32 }}>
+    <main style={{ padding: 40 }}>
       <h1>Arsip Pemerintahan</h1>
-      <p>Starter project monorepo Railway + GitHub</p>
+      <p>Frontend admin sederhana untuk sistem arsip.</p>
 
-      <div style={{ marginTop: 24, padding: 16, border: "1px solid #ccc" }}>
-        <h2>Status API</h2>
-        {health ? (
-          <pre>{JSON.stringify(health, null, 2)}</pre>
-        ) : (
-          <p>API belum tersambung.</p>
-        )}
+      <div style={{ marginTop: 20 }}>
+        <Link
+          href="/login"
+          style={{
+            background: "#111827",
+            color: "#fff",
+            padding: "12px 18px",
+            borderRadius: 8,
+            textDecoration: "none"
+          }}
+        >
+          Masuk ke Admin Panel
+        </Link>
       </div>
     </main>
   );

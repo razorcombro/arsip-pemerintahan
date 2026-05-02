@@ -1,6 +1,6 @@
 export const metadata = {
-  title: "Arsip Pemerintahan",
-  description: "Sistem Arsip Pemerintahan"
+  title: "Arsip Pemerintahan Admin",
+  description: "Panel Admin Sistem Arsip Pemerintahan"
 };
 
 export default function RootLayout({
@@ -10,7 +10,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="id">
-      <body style={{ fontFamily: "Arial, sans-serif", margin: 0, padding: 0 }}>
+      <body
+        style={{
+          fontFamily: "Arial, sans-serif",
+          margin: 0,
+          background: "#f5f7fb"
+        }}
+      >
         {children}
       </body>
     </html>
