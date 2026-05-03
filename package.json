@@ -12,7 +12,7 @@
     "db:migrate": "pnpm --filter @arsip/db prisma migrate deploy",
     "db:seed": "pnpm --filter @arsip/db prisma db seed",
     "build:railway": "pnpm --filter @arsip/db prisma generate && pnpm --filter @arsip/api build && pnpm --filter @arsip/web build",
-    "start:railway": "concurrently \"PORT=4000 pnpm --filter @arsip/api start:prod\" \"pnpm --filter @arsip/web start\""
+    "start:railway": "pnpm db:migrate && concurrently \"PORT=4000 pnpm --filter @arsip/api start:prod\" \"pnpm --filter @arsip/web start\""
   },
   "devDependencies": {
     "concurrently": "^9.1.2",
