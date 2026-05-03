@@ -10,9 +10,12 @@
     "typecheck": "turbo run typecheck",
     "db:generate": "pnpm --filter @arsip/db prisma generate",
     "db:migrate": "pnpm --filter @arsip/db prisma migrate deploy",
-    "db:seed": "pnpm --filter @arsip/db prisma db seed"
+    "db:seed": "pnpm --filter @arsip/db prisma db seed",
+    "build:railway": "pnpm --filter @arsip/db prisma generate && pnpm --filter @arsip/api build && pnpm --filter @arsip/web build",
+    "start:railway": "concurrently \"PORT=4000 pnpm --filter @arsip/api start:prod\" \"pnpm --filter @arsip/web start\""
   },
   "devDependencies": {
+    "concurrently": "^9.1.2",
     "turbo": "^2.0.0"
   }
 }
