@@ -1,14 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { apiFetch, API_BASE_URL } from "../../../../lib/api";
 
 export default function ArchiveDetailPage({
   params
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const resolvedParams = use(params);
+  const archiveId = resolvedParams.id;
+
   const [archive, setArchive] = useState<any>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -17,7 +20,7 @@ export default function ArchiveDetailPage({
     const token = localStorage.getItem("accessToken") || "";
 
     try {
-      const res = await apiFetch(`/archives/${params.id}`, {}, token);
+      const res = await apiFetch(`/archives/${archiveId}`, {}, token);
       setArchive(res.data);
     } catch (err: any) {
       setError(err.message || "Gagal memuat detail arsip");
@@ -26,7 +29,7 @@ export default function ArchiveDetailPage({
 
   useEffect(() => {
     loadData();
-  }, [params.id]);
+  }, [archiveId]);
 
   async function handleDownloadFile(fileId: string, fileName: string) {
     setError("");
@@ -36,7 +39,7 @@ export default function ArchiveDetailPage({
 
     try {
       const res = await fetch(
-        `${API_BASE_URL}/archives/${params.id}/files/${fileId}/download`,
+        `${API_BASE_URL}/archives/${archiveId}/files/${fileId}/download`,
         {
           method: "GET",
           headers: {
@@ -93,14 +96,7 @@ export default function ArchiveDetailPage({
 
       {success ? <p style={{ color: "green" }}>{success}</p> : null}
 
-      <div
-        style={{
-          background: "#fff",
-          padding: 20,
-          borderRadius: 12,
-          marginBottom: 20
-        }}
-      >
+      <div style={{ background: "#fff", padding: 20, borderRadius: 12, marginBottom: 20 }}>
         <h3>Metadata Arsip</h3>
         <div style={{ display: "grid", gap: 8 }}>
           <div><strong>ID:</strong> {archive.id}</div>
@@ -124,26 +120,13 @@ export default function ArchiveDetailPage({
         </div>
       </div>
 
-      <div
-        style={{
-          background: "#fff",
-          padding: 20,
-          borderRadius: 12
-        }}
-      >
+      <div style={{ background: "#fff", padding: 20, borderRadius: 12 }}>
         <h3>Metadata File</h3>
 
         {archive.files?.length ? (
           <div style={{ display: "grid", gap: 16 }}>
             {archive.files.map((file: any) => (
-              <div
-                key={file.id}
-                style={{
-                  border: "1px solid #ddd",
-                  borderRadius: 10,
-                  padding: 14
-                }}
-              >
+              <div key={file.id} style={{ border: "1px solid #ddd", borderRadius: 10, padding: 14 }}>
                 <div><strong>File ID:</strong> {file.id}</div>
                 <div><strong>Nama Asli:</strong> {file.originalName}</div>
                 <div><strong>Nama Simpan:</strong> {file.storedName}</div>
@@ -155,9 +138,7 @@ export default function ArchiveDetailPage({
 
                 <button
                   type="button"
-                  onClick={() =>
-                    handleDownloadFile(file.id, file.originalName)
-                  }
+                  onClick={() => handleDownloadFile(file.id, file.originalName)}
                   style={{ marginTop: 10 }}
                 >
                   Download File
