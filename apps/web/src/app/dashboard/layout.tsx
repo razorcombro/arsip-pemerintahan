@@ -9,7 +9,8 @@ const menuItems = [
   { href: "/dashboard/users", label: "Users" },
   { href: "/dashboard/units", label: "Units" },
   { href: "/dashboard/classifications", label: "Classifications" },
-  { href: "/dashboard/archives", label: "Archives" }
+  { href: "/dashboard/archives", label: "Archives" },
+  { href: "/dashboard/audit-logs", label: "Audit Logs" }
 ];
 
 export default function DashboardLayout({
