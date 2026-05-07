@@ -106,3 +106,58 @@ html.dark .muted { color: #94a3b8; }
     grid-template-columns: 1fr;
   }
 }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.btn-dark {
+  background: #0f172a;
+  color: #fff;
+}
+
+.btn-light {
+  background: #f1f5f9;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
+}
+
+.btn-danger {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.btn-purple {
+  background: linear-gradient(90deg, #2563eb, #7c3aed);
+  color: #fff;
+}
+
+.file-action-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.card-action-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  flex-wrap: wrap;
+}
+
+.action-link {
+  text-decoration: none;
+}

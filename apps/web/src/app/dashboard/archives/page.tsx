@@ -402,7 +402,7 @@ export default function ArchivesPage() {
         </div>
 
         <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 18 }}>
-          <button type="submit">Simpan Arsip</button>
+          <button type="submit" className="btn btn-purple">Simpan Arsip</button>
         </div>
       </form>
 
@@ -488,17 +488,17 @@ export default function ArchivesPage() {
                     <p>{archive.summary || "Tidak ada ringkasan."}</p>
                   </div>
 
-                  <div className="action-row" style={{ margin: 0 }}>
+                  <div className="card-action-row">
                     <button
                       type="button"
-                      className="secondary-btn"
+                      className="btn btn-light"
                       onClick={() => startEdit(archive)}
                     >
                       Edit
                     </button>
                     <button
                       type="button"
-                      className="danger-btn"
+                      className="btn btn-danger"
                       onClick={() => handleDeleteArchive(archive.id)}
                     >
                       Delete
@@ -557,10 +557,10 @@ export default function ArchivesPage() {
                       />
                     </div>
                     <div className="action-row">
-                      <button type="button" onClick={() => handleUpdateArchive(archive.id)}>
+                      <button type="button" className="btn btn-purple" onClick={() => handleUpdateArchive(archive.id)}>
                         Simpan Edit
                       </button>
-                      <button type="button" className="secondary-btn" onClick={cancelEdit}>
+                      <button type="button" className="btn btn-light" onClick={cancelEdit}>
                         Batal
                       </button>
                     </div>
@@ -620,11 +620,11 @@ export default function ArchivesPage() {
                                 {file.mimeType} · {file.sizeBytes} bytes
                               </div>
                             </div>
-                            <div className="action-row" style={{ margin: 0 }}>
+                            <div className="card-action-row">
                               {file.mimeType === "application/pdf" ? (
                                 <button
                                   type="button"
-                                  className="secondary-btn"
+                                  className="btn btn-light"
                                   onClick={() => handlePreviewPdf(archive.id, file)}
                                 >
                                   Preview
