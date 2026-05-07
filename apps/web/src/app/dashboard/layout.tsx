@@ -56,7 +56,10 @@ export default function DashboardLayout({
           height: "100vh"
         }}
       >
-        <h2 style={{ margin: 0, fontSize: 24 }}>ArsipGov</h2>
+        <h2 style={{ margin: 0, fontSize: 20, lineHeight: "1.4" }}>
+          I love istri tercinta<br />Fenie Ayu ❤️
+        </h2>
+
         <p style={{ fontSize: 14, color: "#cbd5e1", marginBottom: 24 }}>
           {user?.fullName || "User"}
         </p>
