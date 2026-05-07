@@ -17,6 +17,9 @@ export default function ArchivesPage() {
   const [classificationFilter, setClassificationFilter] = useState("");
   const [editingArchiveId, setEditingArchiveId] = useState("");
 
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [previewTitle, setPreviewTitle] = useState("");
+
   const [form, setForm] = useState({
     archiveNumber: "",
     letterNumber: "",
@@ -64,27 +67,11 @@ export default function ArchivesPage() {
         archive.letterNumber || ""
       } ${archive.summary || ""}`.toLowerCase();
 
-      const matchesSearch = search
-        ? text.includes(search.toLowerCase())
-        : true;
-
-      const matchesStatus = statusFilter
-        ? archive.status === statusFilter
-        : true;
-
-      const matchesUnit = unitFilter
-        ? archive.createdByUnitId === unitFilter
-        : true;
-
-      const matchesClassification = classificationFilter
-        ? archive.classificationId === classificationFilter
-        : true;
-
       return (
-        matchesSearch &&
-        matchesStatus &&
-        matchesUnit &&
-        matchesClassification
+        (!search || text.includes(search.toLowerCase())) &&
+        (!statusFilter || archive.status === statusFilter) &&
+        (!unitFilter || archive.createdByUnitId === unitFilter) &&
+        (!classificationFilter || archive.classificationId === classificationFilter)
       );
     });
   }, [archives, search, statusFilter, unitFilter, classificationFilter]);
@@ -112,7 +99,7 @@ export default function ArchivesPage() {
         token
       );
 
-      setSuccess("Arsip berhasil dibuat. Silakan upload file dari card arsip.");
+      setSuccess("Arsip berhasil dibuat.");
       setForm({
         archiveNumber: "",
         letterNumber: "",
@@ -160,7 +147,7 @@ export default function ArchivesPage() {
         throw new Error(data.message || "Upload file gagal");
       }
 
-      setSuccess("File berhasil diupload");
+      setSuccess("File berhasil diupload.");
       await loadData();
     } catch (err: any) {
       setError(err.message || "Upload file gagal");
@@ -215,7 +202,7 @@ export default function ArchivesPage() {
         token
       );
 
-      setSuccess("Arsip berhasil diperbarui");
+      setSuccess("Arsip berhasil diperbarui.");
       cancelEdit();
       await loadData();
     } catch (err: any) {
@@ -233,19 +220,37 @@ export default function ArchivesPage() {
     const token = localStorage.getItem("accessToken") || "";
 
     try {
-      await apiFetch(
-        `/archives/${archiveId}`,
-        {
-          method: "DELETE"
-        },
-        token
-      );
-
-      setSuccess("Arsip berhasil di-soft delete");
+      await apiFetch(`/archives/${archiveId}`, { method: "DELETE" }, token);
+      setSuccess("Arsip berhasil di-soft delete.");
       await loadData();
     } catch (err: any) {
       setError(err.message || "Gagal menghapus arsip");
     }
+  }
+
+  async function fetchFileBlob(archiveId: string, fileId: string) {
+    const token = localStorage.getItem("accessToken") || "";
+
+    const res = await fetch(
+      `${API_BASE_URL}/archives/${archiveId}/files/${fileId}/download`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+
+    if (!res.ok) {
+      let msg = "Gagal mengambil file";
+      try {
+        const data = await res.json();
+        msg = data.message || msg;
+      } catch {}
+      throw new Error(msg);
+    }
+
+    return res.blob();
   }
 
   async function handleDownloadFile(
@@ -256,29 +261,8 @@ export default function ArchivesPage() {
     setError("");
     setSuccess("");
 
-    const token = localStorage.getItem("accessToken") || "";
-
     try {
-      const res = await fetch(
-        `${API_BASE_URL}/archives/${archiveId}/files/${fileId}/download`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-
-      if (!res.ok) {
-        let msg = "Gagal download file";
-        try {
-          const data = await res.json();
-          msg = data.message || msg;
-        } catch {}
-        throw new Error(msg);
-      }
-
-      const blob = await res.blob();
+      const blob = await fetchFileBlob(archiveId, fileId);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -288,34 +272,74 @@ export default function ArchivesPage() {
       a.remove();
       window.URL.revokeObjectURL(url);
 
-      setSuccess("File berhasil didownload");
+      setSuccess("File berhasil didownload.");
     } catch (err: any) {
       setError(err.message || "Gagal download file");
     }
   }
 
+  async function handlePreviewPdf(archiveId: string, file: any) {
+    setError("");
+    setSuccess("");
+
+    if (file.mimeType !== "application/pdf") {
+      setError("Preview hanya tersedia untuk PDF.");
+      return;
+    }
+
+    try {
+      if (previewUrl) {
+        window.URL.revokeObjectURL(previewUrl);
+      }
+
+      const blob = await fetchFileBlob(archiveId, file.id);
+      const url = window.URL.createObjectURL(blob);
+      setPreviewUrl(url);
+      setPreviewTitle(file.originalName);
+    } catch (err: any) {
+      setError(err.message || "Gagal preview PDF");
+    }
+  }
+
+  function closePreview() {
+    if (previewUrl) {
+      window.URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewUrl("");
+    setPreviewTitle("");
+  }
+
+  function statusBadgeColor(status: string) {
+    if (status === "ACTIVE") return "#dcfce7";
+    if (status === "DRAFT") return "#fef9c3";
+    if (status === "INACTIVE") return "#e0f2fe";
+    if (status === "DESTROYED") return "#fee2e2";
+    return "#e5e7eb";
+  }
+
+  function statusTextColor(status: string) {
+    if (status === "ACTIVE") return "#166534";
+    if (status === "DRAFT") return "#854d0e";
+    if (status === "INACTIVE") return "#075985";
+    if (status === "DESTROYED") return "#991b1b";
+    return "#111827";
+  }
+
   return (
     <div>
       <h1>Archives</h1>
+      <p className="muted">Kelola arsip, metadata, file, dan dokumen digital.</p>
 
-      <form
-        onSubmit={handleCreateArchive}
-        style={{
-          background: "#fff",
-          padding: 20,
-          borderRadius: 12,
-          marginBottom: 20
-        }}
-      >
-        <h3>Buat Arsip Baru</h3>
+      <form onSubmit={handleCreateArchive} className="card" style={{ marginTop: 22 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 16 }}>
+          <div>
+            <h3>Buat Arsip Baru</h3>
+            <p className="muted">Lengkapi metadata arsip sebelum upload dokumen.</p>
+          </div>
+          <span className="badge">Create Archive</span>
+        </div>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-            gap: 10
-          }}
-        >
+        <div className="grid-2" style={{ marginTop: 14 }}>
           <input
             placeholder="Nomor Arsip"
             value={form.archiveNumber}
@@ -397,30 +421,16 @@ export default function ArchivesPage() {
             <option value="ACTIVE">ACTIVE</option>
             <option value="INACTIVE">INACTIVE</option>
           </select>
+        </div>
 
-          <button type="submit" style={{ gridColumn: "span 2" }}>
-            Simpan Arsip
-          </button>
+        <div style={{ marginTop: 16 }}>
+          <button type="submit">Simpan Arsip</button>
         </div>
       </form>
 
-      <div
-        style={{
-          background: "#fff",
-          padding: 20,
-          borderRadius: 12,
-          marginBottom: 20
-        }}
-      >
-        <h3>Filter & Pencarian Arsip</h3>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "2fr 1fr 1fr 1fr",
-            gap: 10
-          }}
-        >
+      <div className="card" style={{ marginTop: 22 }}>
+        <h3>Filter & Pencarian</h3>
+        <div className="grid-4" style={{ marginTop: 12 }}>
           <input
             placeholder="Cari nomor arsip, judul, nomor surat, ringkasan..."
             value={search}
@@ -464,189 +474,274 @@ export default function ArchivesPage() {
         </div>
       </div>
 
-      {error ? <p style={{ color: "red" }}>{error}</p> : null}
-      {success ? <p style={{ color: "green" }}>{success}</p> : null}
+      {error ? <p className="error-text">{error}</p> : null}
+      {success ? <p className="success-text">{success}</p> : null}
 
-      <div
-        style={{
-          background: "#fff",
-          padding: 20,
-          borderRadius: 12
-        }}
-      >
-        <h3>Daftar Arsip ({filteredArchives.length})</h3>
+      <div style={{ marginTop: 22 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <h3 style={{ marginBottom: 4 }}>Daftar Arsip</h3>
+            <p className="muted">{filteredArchives.length} arsip ditemukan</p>
+          </div>
+        </div>
 
-        <div style={{ display: "grid", gap: 16 }}>
+        <div style={{ display: "grid", gap: 18, marginTop: 14 }}>
           {filteredArchives.map((archive) => (
-            <div
-              key={archive.id}
-              style={{
-                border: "1px solid #ddd",
-                borderRadius: 12,
-                padding: 16
-              }}
-            >
-              <div style={{ marginBottom: 8 }}>
-                <strong>{archive.archiveNumber}</strong> - {archive.title} -{" "}
-                {archive.status}
-              </div>
+            <div key={archive.id} className="archive-card">
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: 18,
+                  alignItems: "flex-start"
+                }}
+              >
+                <div>
+                  <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                    <h3 style={{ margin: 0 }}>
+                      {archive.archiveNumber} — {archive.title}
+                    </h3>
+                    <span
+                      style={{
+                        padding: "5px 10px",
+                        borderRadius: 999,
+                        fontSize: 12,
+                        fontWeight: 800,
+                        background: statusBadgeColor(archive.status),
+                        color: statusTextColor(archive.status)
+                      }}
+                    >
+                      {archive.status}
+                    </span>
+                  </div>
 
-              <div style={{ fontSize: 14, color: "#555", marginBottom: 8 }}>
-                ID: {archive.id}
-              </div>
+                  <p className="muted" style={{ marginTop: 8 }}>
+                    Unit: {archive.createdByUnit?.name || "-"} · Klasifikasi:{" "}
+                    {archive.classification?.name || "-"} · File:{" "}
+                    {archive.files?.length || 0}
+                  </p>
 
-              <div style={{ fontSize: 14, color: "#555", marginBottom: 8 }}>
-                Unit: {archive.createdByUnit?.name || "-"} | Klasifikasi:{" "}
-                {archive.classification?.name || "-"}
+                  <p style={{ margin: "12px 0 0" }}>
+                    {archive.summary || "Tidak ada ringkasan."}
+                  </p>
+                </div>
+
+                <div className="action-row" style={{ margin: 0 }}>
+                  <button type="button" className="secondary-btn" onClick={() => startEdit(archive)}>
+                    Edit
+                  </button>
+                  <button type="button" className="danger-btn" onClick={() => handleDeleteArchive(archive.id)}>
+                    Delete
+                  </button>
+                  <Link
+                    href={`/dashboard/archives/${archive.id}`}
+                    style={{
+                      background: "#111827",
+                      color: "#fff",
+                      textDecoration: "none",
+                      padding: "11px 14px",
+                      borderRadius: 12,
+                      fontWeight: 800
+                    }}
+                  >
+                    Detail
+                  </Link>
+                </div>
               </div>
 
               {editingArchiveId === archive.id ? (
-                <div style={{ display: "grid", gap: 10, marginBottom: 12 }}>
-                  <input
-                    placeholder="Judul"
-                    value={editForm.title}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, title: e.target.value })
-                    }
-                  />
-                  <textarea
-                    placeholder="Ringkasan"
-                    rows={3}
-                    value={editForm.summary}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, summary: e.target.value })
-                    }
-                  />
-                  <select
-                    value={editForm.status}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, status: e.target.value })
-                    }
-                  >
-                    <option value="DRAFT">DRAFT</option>
-                    <option value="ACTIVE">ACTIVE</option>
-                    <option value="INACTIVE">INACTIVE</option>
-                    <option value="DESTROYED">DESTROYED</option>
-                  </select>
-                  <input
-                    placeholder="Keywords pisahkan dengan koma"
-                    value={editForm.keywords}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, keywords: e.target.value })
-                    }
-                  />
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <button
-                      type="button"
-                      onClick={() => handleUpdateArchive(archive.id)}
+                <div className="card" style={{ marginTop: 16, boxShadow: "none" }}>
+                  <h3>Edit Arsip</h3>
+                  <div className="grid-2">
+                    <input
+                      placeholder="Judul"
+                      value={editForm.title}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, title: e.target.value })
+                      }
+                    />
+                    <select
+                      value={editForm.status}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, status: e.target.value })
+                      }
                     >
+                      <option value="DRAFT">DRAFT</option>
+                      <option value="ACTIVE">ACTIVE</option>
+                      <option value="INACTIVE">INACTIVE</option>
+                      <option value="DESTROYED">DESTROYED</option>
+                    </select>
+                    <textarea
+                      placeholder="Ringkasan"
+                      rows={3}
+                      value={editForm.summary}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, summary: e.target.value })
+                      }
+                      style={{ gridColumn: "span 2" }}
+                    />
+                    <input
+                      placeholder="Keywords pisahkan dengan koma"
+                      value={editForm.keywords}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, keywords: e.target.value })
+                      }
+                      style={{ gridColumn: "span 2" }}
+                    />
+                  </div>
+                  <div className="action-row">
+                    <button type="button" onClick={() => handleUpdateArchive(archive.id)}>
                       Simpan Edit
                     </button>
-                    <button type="button" onClick={cancelEdit}>
+                    <button type="button" className="secondary-btn" onClick={cancelEdit}>
                       Batal
                     </button>
                   </div>
                 </div>
-              ) : (
-                <div style={{ marginBottom: 12 }}>
-                  <div style={{ fontSize: 14 }}>
-                    Ringkasan: {archive.summary || "-"}
-                  </div>
-                  <div style={{ fontSize: 13, color: "#777" }}>
-                    Keywords:{" "}
-                    {Array.isArray(archive.keywords) && archive.keywords.length
-                      ? archive.keywords.join(", ")
-                      : "-"}
-                  </div>
-                </div>
-              )}
+              ) : null}
 
               <div
                 style={{
-                  display: "flex",
-                  gap: 8,
-                  marginBottom: 12,
-                  flexWrap: "wrap"
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 16,
+                  marginTop: 16
                 }}
               >
-                <button type="button" onClick={() => startEdit(archive)}>
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDeleteArchive(archive.id)}
-                >
-                  Soft Delete
-                </button>
-                <Link
-                  href={`/dashboard/archives/${archive.id}`}
+                <div
                   style={{
-                    textDecoration: "none",
-                    background: "#111827",
-                    color: "#fff",
-                    padding: "6px 10px",
-                    borderRadius: 6
+                    border: "1px dashed #cbd5e1",
+                    borderRadius: 16,
+                    padding: 16,
+                    background: "rgba(248,250,252,.6)"
                   }}
                 >
-                  Detail
-                </Link>
-              </div>
-
-              <div
-                style={{
-                  background: "#f9fafb",
-                  padding: 12,
-                  borderRadius: 10,
-                  marginBottom: 12
-                }}
-              >
-                <strong>Upload File ke Arsip Ini</strong>
-                <div style={{ marginTop: 8 }}>
+                  <strong>Upload File</strong>
+                  <p className="muted" style={{ marginTop: 4 }}>
+                    PDF, DOCX, XLSX sesuai validasi backend.
+                  </p>
                   <input
                     type="file"
                     onChange={(e) =>
-                      uploadFileToArchive(
-                        archive.id,
-                        e.target.files?.[0] || null
-                      )
+                      uploadFileToArchive(archive.id, e.target.files?.[0] || null)
                     }
                   />
                 </div>
-              </div>
 
-              <div>
-                <strong>Files:</strong>
-                {archive.files?.length ? (
-                  <ul style={{ marginTop: 8 }}>
-                    {archive.files.map((file: any) => (
-                      <li key={file.id} style={{ marginBottom: 6 }}>
-                        {file.originalName}{" "}
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleDownloadFile(
-                              archive.id,
-                              file.id,
-                              file.originalName
-                            )
-                          }
-                          style={{ marginLeft: 8 }}
+                <div
+                  style={{
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 16,
+                    padding: 16
+                  }}
+                >
+                  <strong>File Arsip</strong>
+                  {archive.files?.length ? (
+                    <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
+                      {archive.files.map((file: any) => (
+                        <div
+                          key={file.id}
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: 10,
+                            alignItems: "center",
+                            padding: 10,
+                            borderRadius: 12,
+                            background: "#f8fafc"
+                          }}
                         >
-                          Download
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <div style={{ fontSize: 14, color: "#777", marginTop: 8 }}>
-                    Belum ada file
-                  </div>
-                )}
+                          <div>
+                            <div style={{ fontWeight: 800 }}>{file.originalName}</div>
+                            <div className="muted">
+                              {file.mimeType} · {file.sizeBytes} bytes
+                            </div>
+                          </div>
+                          <div className="action-row" style={{ margin: 0 }}>
+                            {file.mimeType === "application/pdf" ? (
+                              <button
+                                type="button"
+                                className="secondary-btn"
+                                onClick={() => handlePreviewPdf(archive.id, file)}
+                              >
+                                Preview
+                              </button>
+                            ) : null}
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleDownloadFile(
+                                  archive.id,
+                                  file.id,
+                                  file.originalName
+                                )
+                              }
+                            >
+                              Download
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="muted">Belum ada file.</p>
+                  )}
+                </div>
               </div>
             </div>
           ))}
         </div>
       </div>
+
+      {previewUrl ? (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(2,6,23,.72)",
+            zIndex: 50,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 30
+          }}
+        >
+          <div
+            style={{
+              width: "90vw",
+              height: "88vh",
+              background: "#fff",
+              borderRadius: 18,
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column"
+            }}
+          >
+            <div
+              style={{
+                padding: 14,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                borderBottom: "1px solid #e5e7eb"
+              }}
+            >
+              <strong>{previewTitle}</strong>
+              <button type="button" onClick={closePreview}>
+                Tutup
+              </button>
+            </div>
+            <iframe
+              src={previewUrl}
+              style={{
+                flex: 1,
+                width: "100%",
+                border: 0
+              }}
+            />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
