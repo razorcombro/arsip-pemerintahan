@@ -1,21 +1,11 @@
 {
   "name": "arsip-pemerintahan",
   "private": true,
-  "packageManager": "pnpm@10.0.0",
   "scripts": {
-    "build": "turbo run build",
-    "dev": "turbo run dev --parallel",
-    "lint": "turbo run lint",
-    "test": "turbo run test",
-    "typecheck": "turbo run typecheck",
-    "db:generate": "pnpm --filter @arsip/db prisma generate",
-    "db:migrate": "pnpm --filter @arsip/db prisma migrate deploy",
-    "db:seed": "pnpm --filter @arsip/db prisma db seed",
     "build:railway": "pnpm --filter @arsip/db prisma generate && pnpm --filter @arsip/api build && pnpm --filter @arsip/web build",
-    "start:railway": "pnpm db:migrate && concurrently \"PORT=4000 pnpm --filter @arsip/api start:prod\" \"pnpm --filter @arsip/web start\""
+    "start:railway": "pnpm db:migrate && concurrently -k -n api,web \"PORT=4000 pnpm --filter @arsip/api start:prod\" \"pnpm --filter @arsip/web start\""
   },
   "devDependencies": {
-    "concurrently": "^9.1.2",
-    "turbo": "^2.0.0"
+    "concurrently": "^9.1.2"
   }
 }
