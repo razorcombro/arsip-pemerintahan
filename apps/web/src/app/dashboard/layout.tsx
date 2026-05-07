@@ -5,12 +5,12 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 const menuItems = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/dashboard/users", label: "Users" },
-  { href: "/dashboard/units", label: "Units" },
-  { href: "/dashboard/classifications", label: "Classifications" },
-  { href: "/dashboard/archives", label: "Archives" },
-  { href: "/dashboard/audit-logs", label: "Audit Logs" }
+  { href: "/dashboard", label: "Dashboard", roles: ["ALL"] },
+  { href: "/dashboard/users", label: "Users", roles: ["SUPER_ADMIN"] },
+  { href: "/dashboard/units", label: "Units", roles: ["SUPER_ADMIN", "ADMIN_INSTANSI"] },
+  { href: "/dashboard/classifications", label: "Classifications", roles: ["SUPER_ADMIN", "ADMIN_INSTANSI"] },
+  { href: "/dashboard/archives", label: "Archives", roles: ["ALL"] },
+  { href: "/dashboard/audit-logs", label: "Audit Logs", roles: ["SUPER_ADMIN", "ADMIN_INSTANSI", "AUDITOR"] }
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -18,10 +18,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const [ready, setReady] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [dark, setDark] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
     const currentUser = localStorage.getItem("currentUser");
+    const savedTheme = localStorage.getItem("theme");
 
     if (!token) {
       router.push("/login");
@@ -29,13 +31,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
 
     if (currentUser) setUser(JSON.parse(currentUser));
+    if (savedTheme === "dark") {
+      setDark(true);
+      document.documentElement.classList.add("dark");
+    }
+
     setReady(true);
   }, [router]);
+
+  function toggleDark() {
+    const next = !dark;
+    setDark(next);
+    localStorage.setItem("theme", next ? "dark" : "light");
+    document.documentElement.classList.toggle("dark", next);
+  }
 
   function handleLogout() {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("currentUser");
     router.push("/login");
+  }
+
+  function canShow(item: any) {
+    const roles = user?.roles || [];
+    return item.roles.includes("ALL") || item.roles.some((r: string) => roles.includes(r));
   }
 
   if (!ready) return <div style={{ padding: 30 }}>Memuat...</div>;
@@ -71,7 +90,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         <nav style={{ display: "grid", gap: 9 }}>
-          {menuItems.map((item) => {
+          {menuItems.filter(canShow).map((item) => {
             const active = pathname === item.href;
             return (
               <Link
@@ -85,8 +104,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   background: active
                     ? "linear-gradient(90deg,#2563eb,#7c3aed)"
                     : "rgba(255,255,255,.07)",
-                  fontWeight: 700,
-                  boxShadow: active ? "0 10px 20px rgba(37,99,235,.25)" : "none"
+                  fontWeight: 700
                 }}
               >
                 {item.label}
@@ -95,32 +113,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           })}
         </nav>
 
+        <button onClick={toggleDark} style={{ marginTop: 24, width: "100%" }}>
+          {dark ? "Light Mode" : "Dark Mode"}
+        </button>
+
         <button
           onClick={handleLogout}
           className="secondary-btn"
-          style={{ marginTop: 24, width: "100%" }}
+          style={{ marginTop: 12, width: "100%" }}
         >
           Logout
         </button>
       </aside>
 
       <main style={{ flex: 1, padding: 34 }}>
-        <div
-          style={{
-            marginBottom: 24,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center"
-          }}
-        >
-          <div>
-            <div className="badge">Production</div>
-          </div>
-          <div className="muted">
-            Sistem Arsip Pemerintahan
-          </div>
+        <div style={{ marginBottom: 24, display: "flex", justifyContent: "space-between" }}>
+          <div className="badge">Production</div>
+          <div className="muted">Sistem Arsip Pemerintahan</div>
         </div>
-
         {children}
       </main>
     </div>
