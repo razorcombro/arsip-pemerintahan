@@ -10,15 +10,12 @@ export default function ArchivesPage() {
   const [classifications, setClassifications] = useState<any[]>([]);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [createdArchiveId, setCreatedArchiveId] = useState("");
-  const [uploadArchiveId, setUploadArchiveId] = useState("");
-  const [editingArchiveId, setEditingArchiveId] = useState("");
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [unitFilter, setUnitFilter] = useState("");
   const [classificationFilter, setClassificationFilter] = useState("");
+  const [editingArchiveId, setEditingArchiveId] = useState("");
 
   const [form, setForm] = useState({
     archiveNumber: "",
@@ -63,7 +60,9 @@ export default function ArchivesPage() {
 
   const filteredArchives = useMemo(() => {
     return archives.filter((archive) => {
-      const text = `${archive.archiveNumber || ""} ${archive.title || ""} ${archive.letterNumber || ""} ${archive.summary || ""}`.toLowerCase();
+      const text = `${archive.archiveNumber || ""} ${archive.title || ""} ${
+        archive.letterNumber || ""
+      } ${archive.summary || ""}`.toLowerCase();
 
       const matchesSearch = search
         ? text.includes(search.toLowerCase())
@@ -98,7 +97,7 @@ export default function ArchivesPage() {
     const token = localStorage.getItem("accessToken") || "";
 
     try {
-      const res = await apiFetch(
+      await apiFetch(
         "/archives",
         {
           method: "POST",
@@ -113,9 +112,7 @@ export default function ArchivesPage() {
         token
       );
 
-      setCreatedArchiveId(res.data.id);
-      setUploadArchiveId(res.data.id);
-      setSuccess("Arsip berhasil dibuat. Anda bisa upload file sekarang.");
+      setSuccess("Arsip berhasil dibuat. Silakan upload file dari card arsip.");
       setForm({
         archiveNumber: "",
         letterNumber: "",
@@ -134,38 +131,28 @@ export default function ArchivesPage() {
     }
   }
 
-  async function handleUploadFile(e: React.FormEvent) {
-    e.preventDefault();
+  async function uploadFileToArchive(archiveId: string, file: File | null) {
     setError("");
     setSuccess("");
 
-    const token = localStorage.getItem("accessToken") || "";
-    const targetArchiveId = uploadArchiveId || createdArchiveId;
-
-    if (!targetArchiveId) {
-      setError("Pilih atau isi Archive ID terlebih dahulu");
-      return;
-    }
-
-    if (!selectedFile) {
+    if (!file) {
       setError("Pilih file terlebih dahulu");
       return;
     }
 
+    const token = localStorage.getItem("accessToken") || "";
+
     try {
       const formData = new FormData();
-      formData.append("file", selectedFile);
+      formData.append("file", file);
 
-      const res = await fetch(
-        `${API_BASE_URL}/archives/${targetArchiveId}/upload`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`
-          },
-          body: formData
-        }
-      );
+      const res = await fetch(`${API_BASE_URL}/archives/${archiveId}/upload`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        body: formData
+      });
 
       const data = await res.json();
 
@@ -173,16 +160,7 @@ export default function ArchivesPage() {
         throw new Error(data.message || "Upload file gagal");
       }
 
-      setSuccess("File berhasil diupload ke arsip");
-      setSelectedFile(null);
-      setCreatedArchiveId("");
-      setUploadArchiveId("");
-
-      const input = document.getElementById("archive-file-input") as HTMLInputElement | null;
-      if (input) {
-        input.value = "";
-      }
-
+      setSuccess("File berhasil diupload");
       await loadData();
     } catch (err: any) {
       setError(err.message || "Upload file gagal");
@@ -320,151 +298,118 @@ export default function ArchivesPage() {
     <div>
       <h1>Archives</h1>
 
-      <div
+      <form
+        onSubmit={handleCreateArchive}
         style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 20,
-          alignItems: "start"
+          background: "#fff",
+          padding: 20,
+          borderRadius: 12,
+          marginBottom: 20
         }}
       >
-        <form
-          onSubmit={handleCreateArchive}
+        <h3>Buat Arsip Baru</h3>
+
+        <div
           style={{
-            background: "#fff",
-            padding: 20,
-            borderRadius: 12
+            display: "grid",
+            gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+            gap: 10
           }}
         >
-          <h3>Buat Arsip Baru</h3>
+          <input
+            placeholder="Nomor Arsip"
+            value={form.archiveNumber}
+            onChange={(e) =>
+              setForm({ ...form, archiveNumber: e.target.value })
+            }
+          />
+          <input
+            placeholder="Nomor Surat"
+            value={form.letterNumber}
+            onChange={(e) =>
+              setForm({ ...form, letterNumber: e.target.value })
+            }
+          />
+          <input
+            placeholder="Judul Arsip"
+            value={form.title}
+            onChange={(e) => setForm({ ...form, title: e.target.value })}
+          />
+          <input
+            placeholder="Keywords pisahkan dengan koma"
+            value={form.keywords}
+            onChange={(e) => setForm({ ...form, keywords: e.target.value })}
+          />
 
-          <div style={{ display: "grid", gap: 10 }}>
-            <input
-              placeholder="Nomor Arsip"
-              value={form.archiveNumber}
-              onChange={(e) =>
-                setForm({ ...form, archiveNumber: e.target.value })
-              }
-            />
-            <input
-              placeholder="Nomor Surat"
-              value={form.letterNumber}
-              onChange={(e) =>
-                setForm({ ...form, letterNumber: e.target.value })
-              }
-            />
-            <input
-              placeholder="Judul Arsip"
-              value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-            />
-            <textarea
-              placeholder="Ringkasan"
-              value={form.summary}
-              onChange={(e) => setForm({ ...form, summary: e.target.value })}
-              rows={4}
-            />
+          <textarea
+            placeholder="Ringkasan"
+            value={form.summary}
+            onChange={(e) => setForm({ ...form, summary: e.target.value })}
+            rows={4}
+            style={{ gridColumn: "span 2" }}
+          />
 
-            <select
-              value={form.createdByUnitId}
-              onChange={(e) =>
-                setForm({ ...form, createdByUnitId: e.target.value })
-              }
-            >
-              <option value="">Pilih Unit</option>
-              {units.map((unit) => (
-                <option key={unit.id} value={unit.id}>
-                  {unit.name}
-                </option>
-              ))}
-            </select>
+          <select
+            value={form.createdByUnitId}
+            onChange={(e) =>
+              setForm({ ...form, createdByUnitId: e.target.value })
+            }
+          >
+            <option value="">Pilih Unit</option>
+            {units.map((unit) => (
+              <option key={unit.id} value={unit.id}>
+                {unit.name}
+              </option>
+            ))}
+          </select>
 
-            <select
-              value={form.classificationId}
-              onChange={(e) =>
-                setForm({ ...form, classificationId: e.target.value })
-              }
-            >
-              <option value="">Pilih Klasifikasi</option>
-              {classifications.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.code} - {item.name}
-                </option>
-              ))}
-            </select>
+          <select
+            value={form.classificationId}
+            onChange={(e) =>
+              setForm({ ...form, classificationId: e.target.value })
+            }
+          >
+            <option value="">Pilih Klasifikasi</option>
+            {classifications.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.code} - {item.name}
+              </option>
+            ))}
+          </select>
 
-            <select
-              value={form.securityLevel}
-              onChange={(e) =>
-                setForm({ ...form, securityLevel: e.target.value })
-              }
-            >
-              <option value="BIASA">BIASA</option>
-              <option value="TERBATAS">TERBATAS</option>
-              <option value="RAHASIA">RAHASIA</option>
-              <option value="SANGAT_RAHASIA">SANGAT_RAHASIA</option>
-            </select>
+          <select
+            value={form.securityLevel}
+            onChange={(e) =>
+              setForm({ ...form, securityLevel: e.target.value })
+            }
+          >
+            <option value="BIASA">BIASA</option>
+            <option value="TERBATAS">TERBATAS</option>
+            <option value="RAHASIA">RAHASIA</option>
+            <option value="SANGAT_RAHASIA">SANGAT_RAHASIA</option>
+          </select>
 
-            <select
-              value={form.status}
-              onChange={(e) => setForm({ ...form, status: e.target.value })}
-            >
-              <option value="DRAFT">DRAFT</option>
-              <option value="ACTIVE">ACTIVE</option>
-              <option value="INACTIVE">INACTIVE</option>
-            </select>
+          <select
+            value={form.status}
+            onChange={(e) => setForm({ ...form, status: e.target.value })}
+          >
+            <option value="DRAFT">DRAFT</option>
+            <option value="ACTIVE">ACTIVE</option>
+            <option value="INACTIVE">INACTIVE</option>
+          </select>
 
-            <input
-              placeholder="Keywords pisahkan dengan koma"
-              value={form.keywords}
-              onChange={(e) => setForm({ ...form, keywords: e.target.value })}
-            />
-
-            <button type="submit">Simpan Arsip</button>
-          </div>
-        </form>
-
-        <form
-          onSubmit={handleUploadFile}
-          style={{
-            background: "#fff",
-            padding: 20,
-            borderRadius: 12
-          }}
-        >
-          <h3>Upload File</h3>
-
-          <p style={{ fontSize: 14 }}>
-            Bisa upload ke arsip baru atau ke arsip yang sudah ada.
-          </p>
-
-          <div style={{ display: "grid", gap: 10 }}>
-            <input
-              placeholder="Archive ID"
-              value={uploadArchiveId || createdArchiveId}
-              onChange={(e) => {
-                setUploadArchiveId(e.target.value);
-                setCreatedArchiveId("");
-              }}
-            />
-
-            <input
-              id="archive-file-input"
-              type="file"
-              onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-            />
-
-            <button type="submit">Upload File</button>
-          </div>
-        </form>
-      </div>
+          <button type="submit" style={{ gridColumn: "span 2" }}>
+            Simpan Arsip
+          </button>
+        </div>
+      </form>
 
       <div
         style={{
           background: "#fff",
           padding: 20,
           borderRadius: 12,
-          marginTop: 20
+          marginBottom: 20
         }}
       >
         <h3>Filter & Pencarian Arsip</h3>
@@ -519,20 +464,14 @@ export default function ArchivesPage() {
         </div>
       </div>
 
-      {error ? (
-        <p style={{ color: "red", marginTop: 16 }}>{error}</p>
-      ) : null}
-
-      {success ? (
-        <p style={{ color: "green", marginTop: 16 }}>{success}</p>
-      ) : null}
+      {error ? <p style={{ color: "red" }}>{error}</p> : null}
+      {success ? <p style={{ color: "green" }}>{success}</p> : null}
 
       <div
         style={{
           background: "#fff",
           padding: 20,
-          borderRadius: 12,
-          marginTop: 20
+          borderRadius: 12
         }}
       >
         <h3>Daftar Arsip ({filteredArchives.length})</h3>
@@ -550,6 +489,10 @@ export default function ArchivesPage() {
               <div style={{ marginBottom: 8 }}>
                 <strong>{archive.archiveNumber}</strong> - {archive.title} -{" "}
                 {archive.status}
+              </div>
+
+              <div style={{ fontSize: 14, color: "#555", marginBottom: 8 }}>
+                ID: {archive.id}
               </div>
 
               <div style={{ fontSize: 14, color: "#555", marginBottom: 8 }}>
@@ -618,7 +561,14 @@ export default function ArchivesPage() {
                 </div>
               )}
 
-              <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  marginBottom: 12,
+                  flexWrap: "wrap"
+                }}
+              >
                 <button type="button" onClick={() => startEdit(archive)}>
                   Edit
                 </button>
@@ -627,16 +577,6 @@ export default function ArchivesPage() {
                   onClick={() => handleDeleteArchive(archive.id)}
                 >
                   Soft Delete
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setUploadArchiveId(archive.id);
-                    setSuccess(`Upload diarahkan ke arsip ${archive.archiveNumber}`);
-                    setError("");
-                  }}
-                >
-                  Pilih untuk Upload
                 </button>
                 <Link
                   href={`/dashboard/archives/${archive.id}`}
@@ -650,6 +590,28 @@ export default function ArchivesPage() {
                 >
                   Detail
                 </Link>
+              </div>
+
+              <div
+                style={{
+                  background: "#f9fafb",
+                  padding: 12,
+                  borderRadius: 10,
+                  marginBottom: 12
+                }}
+              >
+                <strong>Upload File ke Arsip Ini</strong>
+                <div style={{ marginTop: 8 }}>
+                  <input
+                    type="file"
+                    onChange={(e) =>
+                      uploadFileToArchive(
+                        archive.id,
+                        e.target.files?.[0] || null
+                      )
+                    }
+                  />
+                </div>
               </div>
 
               <div>
