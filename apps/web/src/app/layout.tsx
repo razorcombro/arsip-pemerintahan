@@ -1,3 +1,5 @@
+import "./globals.css";
+
 export const metadata = {
   title: "Arsip Pemerintahan Admin",
   description: "Panel Admin Sistem Arsip Pemerintahan"
@@ -10,15 +12,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="id">
-      <body
-        style={{
-          fontFamily: "Arial, sans-serif",
-          margin: 0,
-          background: "#f5f7fb"
-        }}
-      >
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

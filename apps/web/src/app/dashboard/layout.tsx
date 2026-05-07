@@ -31,10 +31,7 @@ export default function DashboardLayout({
       return;
     }
 
-    if (currentUser) {
-      setUser(JSON.parse(currentUser));
-    }
-
+    if (currentUser) setUser(JSON.parse(currentUser));
     setReady(true);
   }, [router]);
 
@@ -44,26 +41,27 @@ export default function DashboardLayout({
     router.push("/login");
   }
 
-  if (!ready) {
-    return <div style={{ padding: 30 }}>Memuat...</div>;
-  }
+  if (!ready) return <div style={{ padding: 30 }}>Memuat...</div>;
 
   return (
     <div style={{ display: "flex", minHeight: "100vh" }}>
       <aside
         style={{
-          width: 250,
-          background: "#111827",
+          width: 270,
+          background: "linear-gradient(180deg,#0f172a,#111827)",
           color: "#fff",
-          padding: 20
+          padding: 22,
+          position: "sticky",
+          top: 0,
+          height: "100vh"
         }}
       >
-        <h2 style={{ marginTop: 0 }}>Admin Panel</h2>
-        <p style={{ fontSize: 14, opacity: 0.8 }}>
+        <h2 style={{ margin: 0, fontSize: 24 }}>ArsipGov</h2>
+        <p style={{ fontSize: 14, color: "#cbd5e1", marginBottom: 24 }}>
           {user?.fullName || "User"}
         </p>
 
-        <nav style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <nav style={{ display: "grid", gap: 10 }}>
           {menuItems.map((item) => (
             <Link
               key={item.href}
@@ -71,9 +69,10 @@ export default function DashboardLayout({
               style={{
                 color: "#fff",
                 textDecoration: "none",
-                padding: "10px 12px",
-                borderRadius: 8,
-                background: "rgba(255,255,255,0.06)"
+                padding: "12px 14px",
+                borderRadius: 12,
+                background: "rgba(255,255,255,0.08)",
+                fontWeight: 600
               }}
             >
               {item.label}
@@ -83,20 +82,14 @@ export default function DashboardLayout({
 
         <button
           onClick={handleLogout}
-          style={{
-            marginTop: 20,
-            width: "100%",
-            padding: 10,
-            borderRadius: 8,
-            border: "none",
-            cursor: "pointer"
-          }}
+          className="secondary-btn"
+          style={{ marginTop: 24, width: "100%" }}
         >
           Logout
         </button>
       </aside>
 
-      <main style={{ flex: 1, padding: 24 }}>{children}</main>
+      <main style={{ flex: 1, padding: 32 }}>{children}</main>
     </div>
   );
 }
