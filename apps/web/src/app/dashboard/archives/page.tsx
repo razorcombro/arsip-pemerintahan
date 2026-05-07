@@ -10,13 +10,11 @@ export default function ArchivesPage() {
   const [classifications, setClassifications] = useState<any[]>([]);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [unitFilter, setUnitFilter] = useState("");
   const [classificationFilter, setClassificationFilter] = useState("");
   const [editingArchiveId, setEditingArchiveId] = useState("");
-
   const [previewUrl, setPreviewUrl] = useState("");
   const [previewTitle, setPreviewTitle] = useState("");
 
@@ -135,17 +133,13 @@ export default function ArchivesPage() {
 
       const res = await fetch(`${API_BASE_URL}/archives/${archiveId}/upload`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`
-        },
+        headers: { Authorization: `Bearer ${token}` },
         body: formData
       });
 
       const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(data.message || "Upload file gagal");
-      }
+      if (!res.ok) throw new Error(data.message || "Upload file gagal");
 
       setSuccess("File berhasil diupload.");
       await loadData();
@@ -164,24 +158,13 @@ export default function ArchivesPage() {
         ? archive.keywords.join(", ")
         : ""
     });
-    setError("");
-    setSuccess("");
   }
 
   function cancelEdit() {
     setEditingArchiveId("");
-    setEditForm({
-      title: "",
-      summary: "",
-      status: "ACTIVE",
-      keywords: ""
-    });
   }
 
   async function handleUpdateArchive(archiveId: string) {
-    setError("");
-    setSuccess("");
-
     const token = localStorage.getItem("accessToken") || "";
 
     try {
@@ -211,11 +194,7 @@ export default function ArchivesPage() {
   }
 
   async function handleDeleteArchive(archiveId: string) {
-    const ok = window.confirm("Yakin ingin soft delete arsip ini?");
-    if (!ok) return;
-
-    setError("");
-    setSuccess("");
+    if (!window.confirm("Yakin ingin soft delete arsip ini?")) return;
 
     const token = localStorage.getItem("accessToken") || "";
 
@@ -235,20 +214,11 @@ export default function ArchivesPage() {
       `${API_BASE_URL}/archives/${archiveId}/files/${fileId}/download`,
       {
         method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+        headers: { Authorization: `Bearer ${token}` }
       }
     );
 
-    if (!res.ok) {
-      let msg = "Gagal mengambil file";
-      try {
-        const data = await res.json();
-        msg = data.message || msg;
-      } catch {}
-      throw new Error(msg);
-    }
+    if (!res.ok) throw new Error("Gagal mengambil file");
 
     return res.blob();
   }
@@ -258,9 +228,6 @@ export default function ArchivesPage() {
     fileId: string,
     fileName: string
   ) {
-    setError("");
-    setSuccess("");
-
     try {
       const blob = await fetchFileBlob(archiveId, fileId);
       const url = window.URL.createObjectURL(blob);
@@ -271,88 +238,103 @@ export default function ArchivesPage() {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-
-      setSuccess("File berhasil didownload.");
-    } catch (err: any) {
-      setError(err.message || "Gagal download file");
+    } catch {
+      setError("Gagal download file");
     }
   }
 
   async function handlePreviewPdf(archiveId: string, file: any) {
-    setError("");
-    setSuccess("");
-
     if (file.mimeType !== "application/pdf") {
       setError("Preview hanya tersedia untuk PDF.");
       return;
     }
 
     try {
-      if (previewUrl) {
-        window.URL.revokeObjectURL(previewUrl);
-      }
+      if (previewUrl) window.URL.revokeObjectURL(previewUrl);
 
       const blob = await fetchFileBlob(archiveId, file.id);
       const url = window.URL.createObjectURL(blob);
+
       setPreviewUrl(url);
       setPreviewTitle(file.originalName);
-    } catch (err: any) {
-      setError(err.message || "Gagal preview PDF");
+    } catch {
+      setError("Gagal preview PDF");
     }
   }
 
   function closePreview() {
-    if (previewUrl) {
-      window.URL.revokeObjectURL(previewUrl);
-    }
+    if (previewUrl) window.URL.revokeObjectURL(previewUrl);
     setPreviewUrl("");
     setPreviewTitle("");
   }
 
-  function statusBadgeColor(status: string) {
-    if (status === "ACTIVE") return "#dcfce7";
-    if (status === "DRAFT") return "#fef9c3";
-    if (status === "INACTIVE") return "#e0f2fe";
-    if (status === "DESTROYED") return "#fee2e2";
-    return "#e5e7eb";
-  }
-
-  function statusTextColor(status: string) {
-    if (status === "ACTIVE") return "#166534";
-    if (status === "DRAFT") return "#854d0e";
-    if (status === "INACTIVE") return "#075985";
-    if (status === "DESTROYED") return "#991b1b";
-    return "#111827";
+  function statusStyle(status: string) {
+    if (status === "ACTIVE") return { bg: "#dcfce7", text: "#166534" };
+    if (status === "DRAFT") return { bg: "#fef9c3", text: "#854d0e" };
+    if (status === "INACTIVE") return { bg: "#e0f2fe", text: "#075985" };
+    if (status === "DESTROYED") return { bg: "#fee2e2", text: "#991b1b" };
+    return { bg: "#e5e7eb", text: "#111827" };
   }
 
   return (
     <div>
-      <h1>Archives</h1>
-      <p className="muted">Kelola arsip, metadata, file, dan dokumen digital.</p>
+      <div style={{ marginBottom: 24 }}>
+        <div className="badge">Archives Management</div>
+        <h1 style={{ marginTop: 12 }}>Archives</h1>
+        <p className="muted">
+          Kelola arsip, metadata, dokumen digital, dan file pemerintahan.
+        </p>
+      </div>
 
-      <form onSubmit={handleCreateArchive} className="card" style={{ marginTop: 22 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 16 }}>
-          <div>
-            <h3>Buat Arsip Baru</h3>
-            <p className="muted">Lengkapi metadata arsip sebelum upload dokumen.</p>
+      <form onSubmit={handleCreateArchive} className="card">
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 14,
+            marginBottom: 22
+          }}
+        >
+          <div
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 16,
+              background: "linear-gradient(135deg,#2563eb,#7c3aed)",
+              color: "#fff",
+              display: "grid",
+              placeItems: "center",
+              fontSize: 26,
+              fontWeight: 900
+            }}
+          >
+            +
           </div>
-          <span className="badge">Create Archive</span>
+
+          <div>
+            <h2 style={{ margin: 0, fontSize: 24 }}>Formulir Arsip Baru</h2>
+            <p className="muted" style={{ margin: "4px 0 0" }}>
+              Isi informasi dasar arsip sebelum mengunggah dokumen.
+            </p>
+          </div>
         </div>
 
-        <div className="grid-2" style={{ marginTop: 14 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+            gap: 14
+          }}
+        >
           <input
             placeholder="Nomor Arsip"
             value={form.archiveNumber}
-            onChange={(e) =>
-              setForm({ ...form, archiveNumber: e.target.value })
-            }
+            onChange={(e) => setForm({ ...form, archiveNumber: e.target.value })}
           />
           <input
             placeholder="Nomor Surat"
             value={form.letterNumber}
-            onChange={(e) =>
-              setForm({ ...form, letterNumber: e.target.value })
-            }
+            onChange={(e) => setForm({ ...form, letterNumber: e.target.value })}
           />
           <input
             placeholder="Judul Arsip"
@@ -360,24 +342,22 @@ export default function ArchivesPage() {
             onChange={(e) => setForm({ ...form, title: e.target.value })}
           />
           <input
-            placeholder="Keywords pisahkan dengan koma"
+            placeholder="Keywords, pisahkan koma"
             value={form.keywords}
             onChange={(e) => setForm({ ...form, keywords: e.target.value })}
           />
 
           <textarea
-            placeholder="Ringkasan"
+            placeholder="Ringkasan arsip"
             value={form.summary}
             onChange={(e) => setForm({ ...form, summary: e.target.value })}
             rows={4}
-            style={{ gridColumn: "span 2" }}
+            style={{ gridColumn: "span 4" }}
           />
 
           <select
             value={form.createdByUnitId}
-            onChange={(e) =>
-              setForm({ ...form, createdByUnitId: e.target.value })
-            }
+            onChange={(e) => setForm({ ...form, createdByUnitId: e.target.value })}
           >
             <option value="">Pilih Unit</option>
             {units.map((unit) => (
@@ -403,9 +383,7 @@ export default function ArchivesPage() {
 
           <select
             value={form.securityLevel}
-            onChange={(e) =>
-              setForm({ ...form, securityLevel: e.target.value })
-            }
+            onChange={(e) => setForm({ ...form, securityLevel: e.target.value })}
           >
             <option value="BIASA">BIASA</option>
             <option value="TERBATAS">TERBATAS</option>
@@ -423,7 +401,7 @@ export default function ArchivesPage() {
           </select>
         </div>
 
-        <div style={{ marginTop: 16 }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 18 }}>
           <button type="submit">Simpan Arsip</button>
         </div>
       </form>
@@ -432,43 +410,30 @@ export default function ArchivesPage() {
         <h3>Filter & Pencarian</h3>
         <div className="grid-4" style={{ marginTop: 12 }}>
           <input
-            placeholder="Cari nomor arsip, judul, nomor surat, ringkasan..."
+            placeholder="Cari nomor arsip, judul, surat, ringkasan..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
             <option value="">Semua Status</option>
             <option value="DRAFT">DRAFT</option>
             <option value="ACTIVE">ACTIVE</option>
             <option value="INACTIVE">INACTIVE</option>
             <option value="DESTROYED">DESTROYED</option>
           </select>
-
-          <select
-            value={unitFilter}
-            onChange={(e) => setUnitFilter(e.target.value)}
-          >
+          <select value={unitFilter} onChange={(e) => setUnitFilter(e.target.value)}>
             <option value="">Semua Unit</option>
             {units.map((unit) => (
-              <option key={unit.id} value={unit.id}>
-                {unit.name}
-              </option>
+              <option key={unit.id} value={unit.id}>{unit.name}</option>
             ))}
           </select>
-
           <select
             value={classificationFilter}
             onChange={(e) => setClassificationFilter(e.target.value)}
           >
             <option value="">Semua Klasifikasi</option>
             {classifications.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.code} - {item.name}
-              </option>
+              <option key={item.id} value={item.id}>{item.code} - {item.name}</option>
             ))}
           </select>
         </div>
@@ -477,219 +442,218 @@ export default function ArchivesPage() {
       {error ? <p className="error-text">{error}</p> : null}
       {success ? <p className="success-text">{success}</p> : null}
 
-      <div style={{ marginTop: 22 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <h3 style={{ marginBottom: 4 }}>Daftar Arsip</h3>
-            <p className="muted">{filteredArchives.length} arsip ditemukan</p>
-          </div>
-        </div>
+      <div style={{ marginTop: 24 }}>
+        <h2>Daftar Arsip</h2>
+        <p className="muted">{filteredArchives.length} arsip ditemukan</p>
 
-        <div style={{ display: "grid", gap: 18, marginTop: 14 }}>
-          {filteredArchives.map((archive) => (
-            <div key={archive.id} className="archive-card">
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  gap: 18,
-                  alignItems: "flex-start"
-                }}
-              >
-                <div>
-                  <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+        <div style={{ display: "grid", gap: 18, marginTop: 16 }}>
+          {filteredArchives.map((archive) => {
+            const st = statusStyle(archive.status);
+
+            return (
+              <div key={archive.id} className="archive-card">
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 18
+                  }}
+                >
+                  <div>
                     <h3 style={{ margin: 0 }}>
                       {archive.archiveNumber} — {archive.title}
                     </h3>
-                    <span
+
+                    <div style={{ marginTop: 8 }}>
+                      <span
+                        style={{
+                          background: st.bg,
+                          color: st.text,
+                          padding: "5px 10px",
+                          borderRadius: 999,
+                          fontSize: 12,
+                          fontWeight: 800
+                        }}
+                      >
+                        {archive.status}
+                      </span>
+                    </div>
+
+                    <p className="muted">
+                      Unit: {archive.createdByUnit?.name || "-"} · Klasifikasi:{" "}
+                      {archive.classification?.name || "-"} · File:{" "}
+                      {archive.files?.length || 0}
+                    </p>
+
+                    <p>{archive.summary || "Tidak ada ringkasan."}</p>
+                  </div>
+
+                  <div className="action-row" style={{ margin: 0 }}>
+                    <button
+                      type="button"
+                      className="secondary-btn"
+                      onClick={() => startEdit(archive)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      className="danger-btn"
+                      onClick={() => handleDeleteArchive(archive.id)}
+                    >
+                      Delete
+                    </button>
+                    <Link
+                      href={`/dashboard/archives/${archive.id}`}
                       style={{
-                        padding: "5px 10px",
-                        borderRadius: 999,
-                        fontSize: 12,
-                        fontWeight: 800,
-                        background: statusBadgeColor(archive.status),
-                        color: statusTextColor(archive.status)
+                        background: "#111827",
+                        color: "#fff",
+                        textDecoration: "none",
+                        padding: "11px 14px",
+                        borderRadius: 12,
+                        fontWeight: 800
                       }}
                     >
-                      {archive.status}
-                    </span>
+                      Detail
+                    </Link>
                   </div>
-
-                  <p className="muted" style={{ marginTop: 8 }}>
-                    Unit: {archive.createdByUnit?.name || "-"} · Klasifikasi:{" "}
-                    {archive.classification?.name || "-"} · File:{" "}
-                    {archive.files?.length || 0}
-                  </p>
-
-                  <p style={{ margin: "12px 0 0" }}>
-                    {archive.summary || "Tidak ada ringkasan."}
-                  </p>
                 </div>
 
-                <div className="action-row" style={{ margin: 0 }}>
-                  <button type="button" className="secondary-btn" onClick={() => startEdit(archive)}>
-                    Edit
-                  </button>
-                  <button type="button" className="danger-btn" onClick={() => handleDeleteArchive(archive.id)}>
-                    Delete
-                  </button>
-                  <Link
-                    href={`/dashboard/archives/${archive.id}`}
+                {editingArchiveId === archive.id ? (
+                  <div className="card" style={{ marginTop: 16, boxShadow: "none" }}>
+                    <h3>Edit Arsip</h3>
+                    <div className="grid-2">
+                      <input
+                        value={editForm.title}
+                        onChange={(e) =>
+                          setEditForm({ ...editForm, title: e.target.value })
+                        }
+                      />
+                      <select
+                        value={editForm.status}
+                        onChange={(e) =>
+                          setEditForm({ ...editForm, status: e.target.value })
+                        }
+                      >
+                        <option value="DRAFT">DRAFT</option>
+                        <option value="ACTIVE">ACTIVE</option>
+                        <option value="INACTIVE">INACTIVE</option>
+                        <option value="DESTROYED">DESTROYED</option>
+                      </select>
+                      <textarea
+                        rows={3}
+                        value={editForm.summary}
+                        onChange={(e) =>
+                          setEditForm({ ...editForm, summary: e.target.value })
+                        }
+                        style={{ gridColumn: "span 2" }}
+                      />
+                      <input
+                        value={editForm.keywords}
+                        onChange={(e) =>
+                          setEditForm({ ...editForm, keywords: e.target.value })
+                        }
+                        style={{ gridColumn: "span 2" }}
+                      />
+                    </div>
+                    <div className="action-row">
+                      <button type="button" onClick={() => handleUpdateArchive(archive.id)}>
+                        Simpan Edit
+                      </button>
+                      <button type="button" className="secondary-btn" onClick={cancelEdit}>
+                        Batal
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 16,
+                    marginTop: 16
+                  }}
+                >
+                  <div
                     style={{
-                      background: "#111827",
-                      color: "#fff",
-                      textDecoration: "none",
-                      padding: "11px 14px",
-                      borderRadius: 12,
-                      fontWeight: 800
+                      border: "1px dashed #cbd5e1",
+                      borderRadius: 16,
+                      padding: 16
                     }}
                   >
-                    Detail
-                  </Link>
-                </div>
-              </div>
-
-              {editingArchiveId === archive.id ? (
-                <div className="card" style={{ marginTop: 16, boxShadow: "none" }}>
-                  <h3>Edit Arsip</h3>
-                  <div className="grid-2">
+                    <strong>Upload File</strong>
+                    <p className="muted">PDF, DOCX, XLSX sesuai validasi.</p>
                     <input
-                      placeholder="Judul"
-                      value={editForm.title}
+                      type="file"
                       onChange={(e) =>
-                        setEditForm({ ...editForm, title: e.target.value })
+                        uploadFileToArchive(archive.id, e.target.files?.[0] || null)
                       }
-                    />
-                    <select
-                      value={editForm.status}
-                      onChange={(e) =>
-                        setEditForm({ ...editForm, status: e.target.value })
-                      }
-                    >
-                      <option value="DRAFT">DRAFT</option>
-                      <option value="ACTIVE">ACTIVE</option>
-                      <option value="INACTIVE">INACTIVE</option>
-                      <option value="DESTROYED">DESTROYED</option>
-                    </select>
-                    <textarea
-                      placeholder="Ringkasan"
-                      rows={3}
-                      value={editForm.summary}
-                      onChange={(e) =>
-                        setEditForm({ ...editForm, summary: e.target.value })
-                      }
-                      style={{ gridColumn: "span 2" }}
-                    />
-                    <input
-                      placeholder="Keywords pisahkan dengan koma"
-                      value={editForm.keywords}
-                      onChange={(e) =>
-                        setEditForm({ ...editForm, keywords: e.target.value })
-                      }
-                      style={{ gridColumn: "span 2" }}
                     />
                   </div>
-                  <div className="action-row">
-                    <button type="button" onClick={() => handleUpdateArchive(archive.id)}>
-                      Simpan Edit
-                    </button>
-                    <button type="button" className="secondary-btn" onClick={cancelEdit}>
-                      Batal
-                    </button>
-                  </div>
-                </div>
-              ) : null}
 
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 16,
-                  marginTop: 16
-                }}
-              >
-                <div
-                  style={{
-                    border: "1px dashed #cbd5e1",
-                    borderRadius: 16,
-                    padding: 16,
-                    background: "rgba(248,250,252,.6)"
-                  }}
-                >
-                  <strong>Upload File</strong>
-                  <p className="muted" style={{ marginTop: 4 }}>
-                    PDF, DOCX, XLSX sesuai validasi backend.
-                  </p>
-                  <input
-                    type="file"
-                    onChange={(e) =>
-                      uploadFileToArchive(archive.id, e.target.files?.[0] || null)
-                    }
-                  />
-                </div>
-
-                <div
-                  style={{
-                    border: "1px solid #e5e7eb",
-                    borderRadius: 16,
-                    padding: 16
-                  }}
-                >
-                  <strong>File Arsip</strong>
-                  {archive.files?.length ? (
-                    <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
-                      {archive.files.map((file: any) => (
-                        <div
-                          key={file.id}
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            gap: 10,
-                            alignItems: "center",
-                            padding: 10,
-                            borderRadius: 12,
-                            background: "#f8fafc"
-                          }}
-                        >
-                          <div>
-                            <div style={{ fontWeight: 800 }}>{file.originalName}</div>
-                            <div className="muted">
-                              {file.mimeType} · {file.sizeBytes} bytes
+                  <div
+                    style={{
+                      border: "1px solid #e5e7eb",
+                      borderRadius: 16,
+                      padding: 16
+                    }}
+                  >
+                    <strong>File Arsip</strong>
+                    {archive.files?.length ? (
+                      <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
+                        {archive.files.map((file: any) => (
+                          <div
+                            key={file.id}
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              gap: 10,
+                              padding: 10,
+                              borderRadius: 12,
+                              background: "#f8fafc"
+                            }}
+                          >
+                            <div>
+                              <div style={{ fontWeight: 800 }}>{file.originalName}</div>
+                              <div className="muted">
+                                {file.mimeType} · {file.sizeBytes} bytes
+                              </div>
                             </div>
-                          </div>
-                          <div className="action-row" style={{ margin: 0 }}>
-                            {file.mimeType === "application/pdf" ? (
+                            <div className="action-row" style={{ margin: 0 }}>
+                              {file.mimeType === "application/pdf" ? (
+                                <button
+                                  type="button"
+                                  className="secondary-btn"
+                                  onClick={() => handlePreviewPdf(archive.id, file)}
+                                >
+                                  Preview
+                                </button>
+                              ) : null}
                               <button
                                 type="button"
-                                className="secondary-btn"
-                                onClick={() => handlePreviewPdf(archive.id, file)}
+                                onClick={() =>
+                                  handleDownloadFile(
+                                    archive.id,
+                                    file.id,
+                                    file.originalName
+                                  )
+                                }
                               >
-                                Preview
+                                Download
                               </button>
-                            ) : null}
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleDownloadFile(
-                                  archive.id,
-                                  file.id,
-                                  file.originalName
-                                )
-                              }
-                            >
-                              Download
-                            </button>
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="muted">Belum ada file.</p>
-                  )}
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="muted">Belum ada file.</p>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -731,14 +695,7 @@ export default function ArchivesPage() {
                 Tutup
               </button>
             </div>
-            <iframe
-              src={previewUrl}
-              style={{
-                flex: 1,
-                width: "100%",
-                border: 0
-              }}
-            />
+            <iframe src={previewUrl} style={{ flex: 1, width: "100%", border: 0 }} />
           </div>
         </div>
       ) : null}
