@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 
 const menuItems = [
   { href: "/dashboard", label: "Dashboard" },
@@ -13,12 +13,9 @@ const menuItems = [
   { href: "/dashboard/audit-logs", label: "Audit Logs" }
 ];
 
-export default function DashboardLayout({
-  children
-}: {
-  children: React.ReactNode;
-}) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [ready, setReady] = useState(false);
   const [user, setUser] = useState<any>(null);
 
@@ -47,40 +44,55 @@ export default function DashboardLayout({
     <div style={{ display: "flex", minHeight: "100vh" }}>
       <aside
         style={{
-          width: 270,
-          background: "linear-gradient(180deg,#0f172a,#111827)",
+          width: 280,
+          background: "linear-gradient(180deg,#020617,#111827)",
           color: "#fff",
-          padding: 22,
+          padding: 24,
           position: "sticky",
           top: 0,
           height: "100vh"
         }}
       >
-        <h2 style={{ margin: 0, fontSize: 20, lineHeight: "1.4" }}>
-          I love istri tercinta<br />Fenie Ayu ❤️
-        </h2>
+        <div
+          style={{
+            background: "rgba(255,255,255,.08)",
+            border: "1px solid rgba(255,255,255,.12)",
+            padding: 16,
+            borderRadius: 20,
+            marginBottom: 22
+          }}
+        >
+          <h2 style={{ margin: 0, fontSize: 19, lineHeight: 1.4 }}>
+            I love istri tercinta<br />Fenie Ayu ❤️
+          </h2>
+          <p style={{ margin: "10px 0 0", color: "#cbd5e1", fontSize: 13 }}>
+            {user?.fullName || "User"}
+          </p>
+        </div>
 
-        <p style={{ fontSize: 14, color: "#cbd5e1", marginBottom: 24 }}>
-          {user?.fullName || "User"}
-        </p>
-
-        <nav style={{ display: "grid", gap: 10 }}>
-          {menuItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              style={{
-                color: "#fff",
-                textDecoration: "none",
-                padding: "12px 14px",
-                borderRadius: 12,
-                background: "rgba(255,255,255,0.08)",
-                fontWeight: 600
-              }}
-            >
-              {item.label}
-            </Link>
-          ))}
+        <nav style={{ display: "grid", gap: 9 }}>
+          {menuItems.map((item) => {
+            const active = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                style={{
+                  color: "#fff",
+                  textDecoration: "none",
+                  padding: "13px 14px",
+                  borderRadius: 14,
+                  background: active
+                    ? "linear-gradient(90deg,#2563eb,#7c3aed)"
+                    : "rgba(255,255,255,.07)",
+                  fontWeight: 700,
+                  boxShadow: active ? "0 10px 20px rgba(37,99,235,.25)" : "none"
+                }}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
 
         <button
@@ -92,7 +104,25 @@ export default function DashboardLayout({
         </button>
       </aside>
 
-      <main style={{ flex: 1, padding: 32 }}>{children}</main>
+      <main style={{ flex: 1, padding: 34 }}>
+        <div
+          style={{
+            marginBottom: 24,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center"
+          }}
+        >
+          <div>
+            <div className="badge">Production</div>
+          </div>
+          <div className="muted">
+            Sistem Arsip Pemerintahan
+          </div>
+        </div>
+
+        {children}
+      </main>
     </div>
   );
 }
